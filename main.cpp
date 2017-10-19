@@ -49,6 +49,8 @@ int main (int argc, char* argv[] )
         }
     }
     if (menu2Input == 1){
+        cout << "original\n";
+        printPuzzle(problem);
         generalSearch(problem, (functionCall) uniformCostSearch);
     }
     return 0;
@@ -57,13 +59,12 @@ int main (int argc, char* argv[] )
 vector<vector<int> > generalSearch(vector<vector<int> > problem, functionCall func){
     queue<vector<vector<int> > > nodes;
     nodes.push(problem);
-    while (nodes.size() != 0){
-        if (goalTest(problem) == 1){
-            return problem;
-        }
+    // while (nodes.size() != 0){
+    //     if (goalTest(problem) == 1){
+    //         return problem;
+    //     }
         expandNode(nodes);
-
-    }
+    // }
     cout << "breath first search\n";
     printPuzzle(problem);
 
@@ -73,40 +74,39 @@ void expandNode(queue<vector<vector<int> > > &nodes){
     vector<vector<int> > current = nodes.front();
     nodes.pop();
     bool found = false;
-    for (int h=0; h < 4; h++){//does all branches
+    for (int h=0; h < 4; h++){//does all operations
         for (int i=0; i < BOARDSIZE && found == false; i++){
             for (int j=0; j < BOARDSIZE && found == false; j++){
                 if (current[i][j] == -1){
                     if (h == 0 && i > 0){//up
                         current[i][j] = current[i-1][j];
-                        current[i+1][j] = -1;
-                        printPuzzle(current);
+                        current[i-1][j] = -1;
                         nodes.push(current);
-                        current[i+1][j] = current[i-1][j];
+                        current[i-1][j] = current[i][j];
                         current[i][j] = -1;
                         found = true;
                     }
                     if (h == 1 && j < BOARDSIZE-1){//right
-                        current[i][j] = current[i][j-1];
+                        current[i][j] = current[i][j+1];
                         current[i][j+1] = -1;
                         nodes.push(current);
-                        current[i][j+1] = current[i][j-1];
+                        current[i][j+1] = current[i][j];
                         current[i][j] = -1;
                         found = true;
                     }
                     if (h == 2 && i < BOARDSIZE-1){//down
                         current[i][j] = current[i+1][j];
-                        current[i-1][j] = -1;
+                        current[i+1][j] = -1;
                         nodes.push(current);
-                        current[i-1][j] = current[i+1][j];
+                        current[i+1][j] = current[i][j];
                         current[i][j] = -1;
                         found = true;
                     }
                     if (h == 3 &&  j > 0){//left
-                        current[i][j] = current[i-1][j];
-                        current[i+1][j] = -1;
+                        current[i][j] = current[i][j-1];
+                        current[i][j-1] = -1;
                         nodes.push(current);
-                        current[i+1][j] = current[i-1][j];
+                        current[i][j-1] = current[i][j];
                         current[i][j] = -1;
                         found = true;
                     }
@@ -129,8 +129,11 @@ void printPuzzle(vector<vector<int> > problem){
     for (int i=0; i < BOARDSIZE; i++){
         for (int j=0; j < BOARDSIZE; j++){
             cout << problem[i][j] << " ";
+            if (j == 2)
+                cout << endl;
         }
     }
+    cout << endl;
 }
 //Tests if problem state is goal state
 bool goalTest(vector<vector<int> > problem){
