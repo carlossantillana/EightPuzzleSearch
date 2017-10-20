@@ -16,6 +16,7 @@ int main (int argc, char* argv[] )
 {
     int menu1Input =0, menu2Input = 0;
     vector<vector<int> > problem (BOARDSIZE, vector<int>(BOARDSIZE));
+    vector<vector<int> > solution (BOARDSIZE, vector<int>(BOARDSIZE));
 
     cout << "Welcome to Carlos Santillana's 8-puzzle solver.\n";
     cout << "Type \"1\" to use the default puzzle or \"2\" to enter your own puzzle\n";
@@ -49,9 +50,11 @@ int main (int argc, char* argv[] )
         }
     }
     if (menu2Input == 1){
-        cout << "original\n";
-        printPuzzle(problem);
-        generalSearch(problem, (functionCall) uniformCostSearch);
+        // cout << "original\n";
+        // printPuzzle(problem);
+        solution = generalSearch(problem, (functionCall) uniformCostSearch);
+        cout << "found solution \n";
+        printPuzzle(solution);
     }
     return 0;
 }
@@ -59,14 +62,15 @@ int main (int argc, char* argv[] )
 vector<vector<int> > generalSearch(vector<vector<int> > problem, functionCall func){
     queue<vector<vector<int> > > nodes;
     nodes.push(problem);
-    // while (nodes.size() != 0){
-    //     if (goalTest(problem) == 1){
-    //         return problem;
-    //     }
+    while (nodes.size() != 0){
+    //for(int i=0; i < 3; i++){
+        if (goalTest(problem) == 1){
+            return problem;
+        }
+        cout << "iteration" << endl;
+        printPuzzle(nodes.front());
         expandNode(nodes);
-    // }
-    cout << "breath first search\n";
-    printPuzzle(problem);
+    }
 
     return problem;
 }
@@ -141,15 +145,11 @@ bool goalTest(vector<vector<int> > problem){
     int count =1;
     for (int i=0; i < BOARDSIZE; i++){
         for (int j=0; j < BOARDSIZE; j++){
-            cout << "count: " << count;
-            cout << "; problem: " << problem [i][j] << endl;
             if ( problem[i][j] != count && count < BOARDSIZE*BOARDSIZE){
                 done =0;
-                cout << "broken here!\n";
             }
             if (count== BOARDSIZE*BOARDSIZE && problem[BOARDSIZE-1][BOARDSIZE-1] != -1 ){
                 done=0;
-                cout << "broken here!\n";
             }
             count++;
         }
