@@ -3,31 +3,41 @@
 #include <vector>
 using namespace std;
 const int BOARDSIZE = 3;
+
+struct state{
+    vector<vector<int> > puzzle = vector<vector<int> >(BOARDSIZE, vector<int> (BOARDSIZE));
+    int gCost = 0, hCost = 0;
+};
 //allows for functions to be passed as parameters
-typedef void (* functionCall) (int args);/*functionCall func*/
+typedef int (* functionCall) (state args);/*functionCall func*/
 //Function Prototypes
-vector<vector<int> > generalSearch(vector<vector<int> > problem);
-vector<vector<int> > misplacedTile(vector<vector<int> > problem);
-vector<vector<int> > manhattanDistance(vector<vector<int> > problem);
-void expandNode(queue<vector<vector<int> > > &nodes);
+state generalSearch(state problem);
+state AStar(state problem, functionCall func);
+int misplacedTile(state problem);
+int manhattanDistance(state problem);
+void expandNode(queue<state > &nodes);
 void queueingFunction(queue<vector<vector<int> > > &problem);
-bool goalTest(vector<vector<int> > problem);
+bool goalTest(vector<vector<int> >  problem);
 void printPuzzle(vector<vector<int> > problem);
 
 int main (int argc, char* argv[] )
 {
     int menu1Input =0, menu2Input = 0;
-    vector<vector<int> > problem (BOARDSIZE, vector<int>(BOARDSIZE));
-    vector<vector<int> > solution (BOARDSIZE, vector<int>(BOARDSIZE));
-
+    state problem;
+    state solution;
+    vector<vector<int> > test;
+    test.resize(3);
+    for (int i=0; i < 3; i++){
+        test[i].resize(3);
+    }
     cout << "Welcome to Carlos Santillana's 8-puzzle solver.\n";
     cout << "Type \"1\" to use the default puzzle or \"2\" to enter your own puzzle\n";
     while (menu1Input <1 || menu1Input > 2){
         cin >> menu1Input;
         if (menu1Input == 1 ){// initialize default puzzle
-            problem[0][0] = 1; problem[0][1] = 2; problem[0][2] = 3;
-            problem[1][0] = 4; problem[1][1] = -1; problem[1][2] = 6;
-            problem[2][0] = 7; problem[2][1] = 5; problem[2][2] = 8;
+            problem.puzzle[0][0] = 1; problem.puzzle[0][1] = 2; problem.puzzle[0][2] = 3;
+            problem.puzzle[1][0] = 4; problem.puzzle[1][1] = -1; problem.puzzle[1][2] = 6;
+            problem.puzzle[2][0] = 7; problem.puzzle[2][1] = 5; problem.puzzle[2][2] = 8;
         }
         else if (menu1Input == 2){
             cout << "Sorry that feature has not been implemented yet\n";
@@ -55,84 +65,111 @@ int main (int argc, char* argv[] )
         solution = generalSearch(problem);
     }
     else if (menu2Input == 2){
-        solution = misplacedTile(problem);
+        solution = AStar(problem, misplacedTile);
     }
     else if (menu2Input == 3){
-        solution = manhattanDistance(problem);
+        solution = AStar(problem, manhattanDistance);
     }
-    if (solution[0][0] != 0 ){
+    if (solution.puzzle[0][0] != 0 ){
     cout << "found solution \n";
-    printPuzzle(solution);
+    printPuzzle(solution.puzzle);
+    cout << "g cost: " << solution.gCost << endl;
     }
     else{
         cout << "no solution\n";
     }
     return 0;
 }
-//Does breadth first search
-vector<vector<int> > generalSearch(vector<vector<int> > problem){
-    queue<vector<vector<int> > > nodes;
-    vector<vector<int> > failure (1, vector<int>(1));
-    failure[0][0] = 0;
+//Does Uniform Cost Search
+state generalSearch(state problem){
+    queue<state> nodes;
+    state failure;
+    failure.puzzle[0][0] = 0;
     nodes.push(problem);
     while (nodes.size() != 0){
-        if (goalTest(nodes.front()) == 1){
+        if (goalTest(nodes.front().puzzle) == 1){
             return nodes.front();
         }
         cout << "Expanding State" << endl;
-        printPuzzle(nodes.front());
+        printPuzzle(nodes.front().puzzle);
         expandNode(nodes);
     }
     return failure;
 }
-//Uses A* search with the Misplaced Tile heuristic
-vector<vector<int> > misplacedTile(vector<vector<int> > problem){
+state AStar(state problem, functionCall func){
+    state failure;
+    failure.puzzle[0][0] = 0;
 
+    return failure;
+}
+//Uses A* search with the Misplaced Tile heuristic
+int misplacedTile(state problem){
+    int count =1;
+    int mTiles = 0;
+    for (int i=0; i < BOARDSIZE; i++){
+        for (int j=0; j < BOARDSIZE; j++){
+            if ( problem.puzzle[i][j] != count && count < BOARDSIZE*BOARDSIZE){
+                mTiles++;
+            }
+            count++;
+        }
+    }
+    cout << "MisplacedTiles " << mTiles << endl;
+    return mTiles;
 }
 //Uses A* search with the Manhattan Distance heuristic
-vector<vector<int> > manhattanDistance(vector<vector<int> > problem){
-
+int manhattanDistance(state problem){
+    int mDistance =0;
+    return mDistance;
 }
 //Expands node by branching  out its nodes
 //Does this by doing the up right, down left operations
-void expandNode(queue<vector<vector<int> > > &nodes){
-    vector<vector<int> > current = nodes.front();
+void expandNode(queue<state > &nodes){
+    state current = nodes.front();
     nodes.pop();
     bool found = false;
     for (int h=0; h < 4; h++){//does all operations
         for (int i=0; i < BOARDSIZE && found == false; i++){
             for (int j=0; j < BOARDSIZE && found == false; j++){
-                if (current[i][j] == -1){
+                if (current.puzzle[i][j] == -1){
                     if (h == 0 && i > 0){//up
-                        current[i][j] = current[i-1][j];
-                        current[i-1][j] = -1;
+                        current.puzzle[i][j] = current.puzzle[i-1][j];
+                        current.puzzle[i-1][j] = -1;
+                        current.gCost++;
                         nodes.push(current);
-                        current[i-1][j] = current[i][j];
-                        current[i][j] = -1;
+                        current.puzzle[i-1][j] = current.puzzle[i][j];
+                        current.puzzle[i][j] = -1;
+                        current.gCost--;
                         found = true;
                     }
                     if (h == 1 && j < BOARDSIZE-1){//right
-                        current[i][j] = current[i][j+1];
-                        current[i][j+1] = -1;
+                        current.puzzle[i][j] = current.puzzle[i][j+1];
+                        current.puzzle[i][j+1] = -1;
+                        current.gCost++;
                         nodes.push(current);
-                        current[i][j+1] = current[i][j];
-                        current[i][j] = -1;
+                        current.puzzle[i][j+1] = current.puzzle[i][j];
+                        current.puzzle[i][j] = -1;
+                        current.gCost--;
                         found = true;
                     }
                     if (h == 2 && i < BOARDSIZE-1){//down
-                        current[i][j] = current[i+1][j];
-                        current[i+1][j] = -1;
+                        current.puzzle[i][j] = current.puzzle[i+1][j];
+                        current.puzzle[i+1][j] = -1;
+                        current.gCost++;
                         nodes.push(current);
-                        current[i+1][j] = current[i][j];
-                        current[i][j] = -1;
+                        current.puzzle[i+1][j] = current.puzzle[i][j];
+                        current.puzzle[i][j] = -1;
+                        current.gCost--;
                         found = true;
                     }
                     if (h == 3 &&  j > 0){//left
-                        current[i][j] = current[i][j-1];
-                        current[i][j-1] = -1;
+                        current.puzzle[i][j] = current.puzzle[i][j-1];
+                        current.puzzle[i][j-1] = -1;
+                        current.gCost++;
                         nodes.push(current);
-                        current[i][j-1] = current[i][j];
-                        current[i][j] = -1;
+                        current.puzzle[i][j-1] = current.puzzle[i][j];
+                        current.puzzle[i][j] = -1;
+                        current.gCost--;
                         found = true;
                     }
                 }
