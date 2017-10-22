@@ -1,6 +1,7 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+#include <limits>
 using namespace std;
 const int BOARDSIZE = 3;
 
@@ -8,15 +9,20 @@ struct state{
     vector<vector<int> > puzzle = vector<vector<int> >(BOARDSIZE, vector<int> (BOARDSIZE));
     int gCost = 0, hCost = 0;
 };
+
+struct compareWeight {
+    bool operator()(state const & s1, state const & s2) {
+        return (s1.gCost + s1.hCost) > (s2.gCost + s2.hCost);
+    }
+};
 //allows for functions to be passed as parameters
-typedef int (* functionCall) (state args);/*functionCall func*/
+typedef void (* functionCall) (state &args);/*functionCall func*/
 //Function Prototypes
-state generalSearch(state problem);
 state AStar(state problem, functionCall func);
-int misplacedTile(state problem);
-int manhattanDistance(state problem);
-void expandNode(queue<state > &nodes);
-void queueingFunction(queue<vector<vector<int> > > &problem);
+void uniformCost(state &problem);
+void misplacedTile(state &problem);
+void manhattanDistance(state &problem);
+void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, functionCall func);
 bool goalTest(vector<vector<int> >  problem);
 void printPuzzle(vector<vector<int> > problem);
 
@@ -25,7 +31,7 @@ int main (int argc, char* argv[] )
     int menu1Input =0, menu2Input = 0;
     state problem;
     state solution;
-    
+
     cout << "Welcome to Carlos Santillana's 8-puzzle solver.\n";
     cout << "Type \"1\" to use the default puzzle or \"2\" to enter your own puzzle\n";
     while (menu1Input <1 || menu1Input > 2){
@@ -58,7 +64,7 @@ int main (int argc, char* argv[] )
         }
     }
     if (menu2Input == 1){
-        solution = generalSearch(problem);
+        solution = AStar(problem, uniformCost);
     }
     else if (menu2Input == 2){
         solution = AStar(problem, misplacedTile);
@@ -69,37 +75,32 @@ int main (int argc, char* argv[] )
     if (solution.puzzle[0][0] != 0 ){
     cout << "found solution \n";
     printPuzzle(solution.puzzle);
-    cout << "g cost: " << solution.gCost << endl;
     }
     else{
         cout << "no solution\n";
     }
     return 0;
 }
-//Does Uniform Cost Search
-state generalSearch(state problem){
-    queue<state> nodes;
+state AStar(state problem, functionCall func){
+    priority_queue<state, vector<state>,compareWeight> nodes;
     state failure;
     failure.puzzle[0][0] = 0;
     nodes.push(problem);
     while (nodes.size() != 0){
-        if (goalTest(nodes.front().puzzle) == 1){
-            return nodes.front();
+        if (goalTest(nodes.top().puzzle) == 1){
+            return nodes.top();
         }
         cout << "Expanding State" << endl;
-        printPuzzle(nodes.front().puzzle);
-        expandNode(nodes);
+        printPuzzle(nodes.top().puzzle);
+        expandNode(nodes, func);
     }
     return failure;
 }
-state AStar(state problem, functionCall func){
-    state failure;
-    failure.puzzle[0][0] = 0;
-
-    return failure;
+void uniformCost(state &problem){
+    problem.hCost = 0;
 }
 //Uses A* search with the Misplaced Tile heuristic
-int misplacedTile(state problem){
+void misplacedTile(state &problem){
     int count =1;
     int mTiles = 0;
     for (int i=0; i < BOARDSIZE; i++){
@@ -110,18 +111,18 @@ int misplacedTile(state problem){
             count++;
         }
     }
-    cout << "MisplacedTiles " << mTiles << endl;
-    return mTiles;
+    problem.hCost = mTiles;
 }
 //Uses A* search with the Manhattan Distance heuristic
-int manhattanDistance(state problem){
+void manhattanDistance(state &problem){
     int mDistance =0;
-    return mDistance;
+
+    problem.hCost = mDistance;
 }
 //Expands node by branching  out its nodes
 //Does this by doing the up right, down left operations
-void expandNode(queue<state > &nodes){
-    state current = nodes.front();
+void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, functionCall func){
+    state current = nodes.top();
     nodes.pop();
     bool found = false;
     for (int h=0; h < 4; h++){//does all operations
@@ -132,6 +133,7 @@ void expandNode(queue<state > &nodes){
                         current.puzzle[i][j] = current.puzzle[i-1][j];
                         current.puzzle[i-1][j] = -1;
                         current.gCost++;
+                        func(current);
                         nodes.push(current);
                         current.puzzle[i-1][j] = current.puzzle[i][j];
                         current.puzzle[i][j] = -1;
@@ -142,6 +144,7 @@ void expandNode(queue<state > &nodes){
                         current.puzzle[i][j] = current.puzzle[i][j+1];
                         current.puzzle[i][j+1] = -1;
                         current.gCost++;
+                        func(current);
                         nodes.push(current);
                         current.puzzle[i][j+1] = current.puzzle[i][j];
                         current.puzzle[i][j] = -1;
@@ -152,6 +155,7 @@ void expandNode(queue<state > &nodes){
                         current.puzzle[i][j] = current.puzzle[i+1][j];
                         current.puzzle[i+1][j] = -1;
                         current.gCost++;
+                        func(current);
                         nodes.push(current);
                         current.puzzle[i+1][j] = current.puzzle[i][j];
                         current.puzzle[i][j] = -1;
@@ -162,6 +166,7 @@ void expandNode(queue<state > &nodes){
                         current.puzzle[i][j] = current.puzzle[i][j-1];
                         current.puzzle[i][j-1] = -1;
                         current.gCost++;
+                        func(current);
                         nodes.push(current);
                         current.puzzle[i][j-1] = current.puzzle[i][j];
                         current.puzzle[i][j] = -1;
@@ -176,9 +181,6 @@ void expandNode(queue<state > &nodes){
     }
 
 }
-// void queueingFunction(vector<vector<int> > problem ){
-//
-// }
 
 //prints state of puzzle in matrix notation
 void printPuzzle(vector<vector<int> > problem){
