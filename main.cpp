@@ -3,12 +3,14 @@
 #include <vector>
 using namespace std;
 const int BOARDSIZE = 3;
+//allows for functions to be passed as parameters
+typedef void (* functionCall) (int args);/*functionCall func*/
 //Function Prototypes
-typedef void (* functionCall) (int args);
-vector<vector<int> > generalSearch(vector<vector<int> > problem, functionCall func);
+vector<vector<int> > generalSearch(vector<vector<int> > problem);
+vector<vector<int> > misplacedTile(vector<vector<int> > problem);
+vector<vector<int> > manhattanDistance(vector<vector<int> > problem);
 void expandNode(queue<vector<vector<int> > > &nodes);
 void queueingFunction(queue<vector<vector<int> > > &problem);
-void uniformCostSearch(vector<vector<int> > problem);
 bool goalTest(vector<vector<int> > problem);
 void printPuzzle(vector<vector<int> > problem);
 
@@ -22,7 +24,7 @@ int main (int argc, char* argv[] )
     cout << "Type \"1\" to use the default puzzle or \"2\" to enter your own puzzle\n";
     while (menu1Input <1 || menu1Input > 2){
         cin >> menu1Input;
-        if (menu1Input == 1 ){
+        if (menu1Input == 1 ){// initialize default puzzle
             problem[0][0] = 1; problem[0][1] = 2; problem[0][2] = 3;
             problem[1][0] = 4; problem[1][1] = -1; problem[1][2] = 6;
             problem[2][0] = 7; problem[2][1] = 5; problem[2][2] = 8;
@@ -50,30 +52,49 @@ int main (int argc, char* argv[] )
         }
     }
     if (menu2Input == 1){
-        // cout << "original\n";
-        // printPuzzle(problem);
-        solution = generalSearch(problem, (functionCall) uniformCostSearch);
-        cout << "found solution \n";
-        printPuzzle(solution);
+        solution = generalSearch(problem);
+    }
+    else if (menu2Input == 2){
+        solution = misplacedTile(problem);
+    }
+    else if (menu2Input == 3){
+        solution = manhattanDistance(problem);
+    }
+    if (solution[0][0] != 0 ){
+    cout << "found solution \n";
+    printPuzzle(solution);
+    }
+    else{
+        cout << "no solution\n";
     }
     return 0;
 }
 //Does breadth first search
-vector<vector<int> > generalSearch(vector<vector<int> > problem, functionCall func){
+vector<vector<int> > generalSearch(vector<vector<int> > problem){
     queue<vector<vector<int> > > nodes;
+    vector<vector<int> > failure (1, vector<int>(1));
+    failure[0][0] = 0;
     nodes.push(problem);
     while (nodes.size() != 0){
-    //for(int i=0; i < 3; i++){
-        if (goalTest(problem) == 1){
-            return problem;
+        if (goalTest(nodes.front()) == 1){
+            return nodes.front();
         }
-        cout << "iteration" << endl;
+        cout << "Expanding State" << endl;
         printPuzzle(nodes.front());
         expandNode(nodes);
     }
-
-    return problem;
+    return failure;
 }
+//Uses A* search with the Misplaced Tile heuristic
+vector<vector<int> > misplacedTile(vector<vector<int> > problem){
+
+}
+//Uses A* search with the Manhattan Distance heuristic
+vector<vector<int> > manhattanDistance(vector<vector<int> > problem){
+
+}
+//Expands node by branching  out its nodes
+//Does this by doing the up right, down left operations
 void expandNode(queue<vector<vector<int> > > &nodes){
     vector<vector<int> > current = nodes.front();
     nodes.pop();
@@ -114,7 +135,6 @@ void expandNode(queue<vector<vector<int> > > &nodes){
                         current[i][j] = -1;
                         found = true;
                     }
-
                 }
             }
         }
@@ -123,12 +143,11 @@ void expandNode(queue<vector<vector<int> > > &nodes){
     }
 
 }
-void queueingFunction(vector<vector<int> > problem ){
+// void queueingFunction(vector<vector<int> > problem ){
+//
+// }
 
-}
-void uniformCostSearch(vector<vector<int> > problem){
-
-}
+//prints state of puzzle in matrix notation
 void printPuzzle(vector<vector<int> > problem){
     for (int i=0; i < BOARDSIZE; i++){
         for (int j=0; j < BOARDSIZE; j++){
