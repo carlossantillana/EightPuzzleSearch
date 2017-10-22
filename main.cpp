@@ -25,11 +25,7 @@ int main (int argc, char* argv[] )
     int menu1Input =0, menu2Input = 0;
     state problem;
     state solution;
-    vector<vector<int> > test;
-    test.resize(3);
-    for (int i=0; i < 3; i++){
-        test[i].resize(3);
-    }
+    
     cout << "Welcome to Carlos Santillana's 8-puzzle solver.\n";
     cout << "Type \"1\" to use the default puzzle or \"2\" to enter your own puzzle\n";
     while (menu1Input <1 || menu1Input > 2){
