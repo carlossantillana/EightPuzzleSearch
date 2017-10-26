@@ -1,6 +1,8 @@
 #include <iostream>
 #include <queue>
 #include <utility>
+#include <string>
+#include <unordered_set>
 using namespace std;
 const int BOARDSIZE = 3;
 
@@ -14,24 +16,48 @@ struct compareWeight {
         return (s1.gCost + s1.hCost) > (s2.gCost + s2.hCost);
     }
 };
+struct Hash {
+   size_t operator() (const state &problem) const {
+       string tmp = "";
+       for (int i=0; i < BOARDSIZE; i++){
+           for (int j=0; j < BOARDSIZE; j++){
+               tmp += to_string (problem.puzzle[i][j]);
+           }
+       }
+         return (tmp.length());
+       }
+};
+inline bool operator == (state const& lhs, state const& rhs)
+{
+    bool ret = true;
+    for (int i=0; i < BOARDSIZE; i++){
+        for (int j=0; j < BOARDSIZE; j++){
+            if (lhs.puzzle[i][j] != rhs.puzzle[i][j]){
+                ret = false;
+            }
+        }
+    }
+    return ret;
+}
 //allows for functions to be passed as parameters
 typedef void (* functionCall) (state &args);/*functionCall func*/
 //Function Prototypes
-state AStar(state problem, functionCall func, float &expandedNodes, float &maxQueue);
+state AStar(state problem, functionCall func, float &expandedNodes, float &maxQueue, unordered_set<state, Hash> &hashTable);
 void uniformCost(state &problem);
 void misplacedTile(state &problem);
 void manhattanDistance(state &problem);
 pair<int,int> findLocation(int wrongLoc);
-void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, functionCall func, float &expandedNodes);
+void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, functionCall func, float &expandedNodes, unordered_set<state, Hash> &hashTable);
 bool goalTest(vector<vector<int> >  problem);
 void printPuzzle(vector<vector<int> > problem);
 
 int main (int argc, char* argv[] )
-{
+{vector<vector<int> > puzzle;
     int menu1Input =0, menu2Input = 0;
     int p1=0, p2=0, p3=0;
     float expandedNodes = 0, maxQueue =0;
     state problem, solution;
+    unordered_set<state, Hash > hashTable;
 
     cout << "Welcome to Carlos Santillana's 8-puzzle solver.\n";
     cout << "Type \"1\" to use the default puzzle or \"2\" to enter your own puzzle\n";
@@ -75,13 +101,13 @@ int main (int argc, char* argv[] )
         }
     }
     if (menu2Input == 1){
-        solution = AStar(problem, uniformCost, expandedNodes, maxQueue);
+        solution = AStar(problem, uniformCost, expandedNodes, maxQueue, hashTable);
     }
     else if (menu2Input == 2){
-        solution = AStar(problem, misplacedTile, expandedNodes, maxQueue);
+        solution = AStar(problem, misplacedTile, expandedNodes, maxQueue, hashTable);
     }
     else if (menu2Input == 3){
-        solution = AStar(problem, manhattanDistance, expandedNodes, maxQueue);
+        solution = AStar(problem, manhattanDistance, expandedNodes, maxQueue, hashTable);
     }
     if (solution.puzzle[0][0] != -1 ){
     cout << "Goal! \n";
@@ -98,13 +124,15 @@ int main (int argc, char* argv[] )
     return 0;
 }
 //Runs A* search
-state AStar(state problem, functionCall func, float &expandedNodes, float &maxQueue){
+state AStar(state problem, functionCall func, float &expandedNodes, float &maxQueue, unordered_set<state, Hash> &hashTable){
     priority_queue<state, vector<state>,compareWeight> nodes;
     state failure;
     bool first = true;
 
     failure.puzzle[0][0] = -1;
     nodes.push(problem);
+    hashTable.emplace(problem);
+    //for(int i=0; i < 4; i++){
     while (nodes.size() != 0){
         if (goalTest(nodes.top().puzzle) == 1){
             return nodes.top();
@@ -120,7 +148,7 @@ state AStar(state problem, functionCall func, float &expandedNodes, float &maxQu
             printPuzzle(nodes.top().puzzle);
             cout << "Expanding this node...\n\n";
         }
-        expandNode(nodes, func, expandedNodes);
+        expandNode(nodes, func, expandedNodes, hashTable);
         if (nodes.size() > maxQueue)
             maxQueue = nodes.size();
     }
@@ -173,10 +201,11 @@ pair<int,int> findLocation(int wrongLoc){
 }
 //Expands node by branching  out its nodes
 //Does this by doing the up right, down left operations
-void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, functionCall func, float &expandedNodes){
+void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, functionCall func, float &expandedNodes, unordered_set<state, Hash> &hashTable){
     state current = nodes.top();
     nodes.pop();
     bool found = false;
+    unordered_set<state, Hash>::const_iterator got;
     for (int h=0; h < 4; h++){//does all operations
         for (int i=0; i < BOARDSIZE && found == false; i++){
             for (int j=0; j < BOARDSIZE && found == false; j++){
@@ -185,8 +214,17 @@ void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, func
                         current.puzzle[i][j] = current.puzzle[i-1][j];
                         current.puzzle[i-1][j] = 0;
                         current.gCost++;
-                        func(current);
-                        nodes.push(current);
+                        got = hashTable.find (current);
+                        // cout << "looking for\n";
+                        // printPuzzle(current.puzzle);
+                        if (got == hashTable.end()){
+                            func(current);
+                            nodes.push(current);
+                            // cout << "not found\n";
+                        }
+                        // else{
+                        //     cout << "found\n";
+                        // }
                         current.puzzle[i-1][j] = current.puzzle[i][j];
                         current.puzzle[i][j] = 0;
                         current.gCost--;
@@ -197,8 +235,16 @@ void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, func
                         current.puzzle[i][j] = current.puzzle[i][j+1];
                         current.puzzle[i][j+1] = 0;
                         current.gCost++;
-                        func(current);
-                        nodes.push(current);
+                        // cout << "looking for\n";
+                        // printPuzzle(current.puzzle);
+                        if (got == hashTable.end()){
+                            func(current);
+                            nodes.push(current);
+                            // cout << "not found\n";
+                        }
+                        // else{
+                        //     cout << "found\n";
+                        // }
                         current.puzzle[i][j+1] = current.puzzle[i][j];
                         current.puzzle[i][j] = 0;
                         current.gCost--;
@@ -209,8 +255,16 @@ void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, func
                         current.puzzle[i][j] = current.puzzle[i+1][j];
                         current.puzzle[i+1][j] = 0;
                         current.gCost++;
-                        func(current);
-                        nodes.push(current);
+                        // cout << "looking for\n";
+                        // printPuzzle(current.puzzle);
+                        if (got == hashTable.end()){
+                            func(current);
+                            nodes.push(current);
+                            // cout << "not found\n";
+                        }
+                        // else{
+                        //     cout << "found\n";
+                        // }
                         current.puzzle[i+1][j] = current.puzzle[i][j];
                         current.puzzle[i][j] = 0;
                         current.gCost--;
@@ -221,8 +275,16 @@ void expandNode(priority_queue<state, vector<state>, compareWeight> &nodes, func
                         current.puzzle[i][j] = current.puzzle[i][j-1];
                         current.puzzle[i][j-1] = 0;
                         current.gCost++;
-                        func(current);
-                        nodes.push(current);
+                        // cout << "looking for\n";
+                        // printPuzzle(current.puzzle);
+                        if (got == hashTable.end()){
+                            func(current);
+                            nodes.push(current);
+                            // cout << "not found\n";
+                        }
+                        // else{
+                        //     cout << "found\n";
+                        // }
                         current.puzzle[i][j-1] = current.puzzle[i][j];
                         current.puzzle[i][j] = 0;
                         current.gCost--;

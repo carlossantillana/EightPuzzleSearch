@@ -1,0 +1,4 @@
+http://www.cplusplus.com/reference/unordered_set/unordered_set/
+(used to find out how to use hash table)
+https://stackoverflow.com/questions/15869066/inserting-into-unordered-set-with-custom-hash-function
+(used to learn how to put structs inside uordered_set)
